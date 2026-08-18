@@ -183,6 +183,16 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <a href="edit.php?id=<?php echo $debt['id']; ?>">
         Edit
     </a>
+    |
+
+    <a href="payment.php?debt_id=<?php echo $debt['id']; ?>">
+        Record Payment
+    </a>
+    |
+
+    <a href="payments.php?debt_id=<?php echo $debt['id']; ?>">
+        Payment History
+    </a>
 
     |
 
