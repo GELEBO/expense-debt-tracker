@@ -36,6 +36,21 @@ $remainingDebt = $totalDebt - $totalPaid;
 <p class="dashboard-intro">
     Welcome to your financial dashboard.
 </p>
+<nav class="dashboard-nav">
+
+    <a href="income/index.php">
+        Income
+    </a>
+
+    <a href="expenses/index.php">
+        Expenses
+    </a>
+
+    <a href="debt/index.php">
+        Debts
+    </a>
+
+</nav>
 
 <div class="summary-grid">
 

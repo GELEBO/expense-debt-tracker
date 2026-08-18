@@ -34,6 +34,9 @@ $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <p>
         <a href="../index.php">← Back to Dashboard</a>
     </p>
+    <p>
+    <a href="create.php">+ Add Expense</a>
+    </p>
 
     <table border="1" cellpadding="10">
         <thead>
@@ -51,36 +54,41 @@ $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <?php foreach ($expenses as $expense): ?>
 
             <tr>
-                <td>
-                    <?php echo htmlspecialchars($expense['expense_date']); ?>
-                </td>
 
-                <td>
-                    <?php echo htmlspecialchars($expense['category']); ?>
-                </td>
+    <td>
+        <?php echo htmlspecialchars($expense['expense_date']); ?>
+    </td>
 
-                <td>
-                    <?php echo number_format($expense['amount'], 2); ?> ETB
-                </td>
+    <td>
+        <?php echo htmlspecialchars($expense['category']); ?>
+    </td>
 
-                <td>
-                    <?php echo htmlspecialchars($expense['description']); ?>
-                </td>
-                <td>
-    <a href="edit.php?id=<?php echo $expense['id']; ?>">
-        Edit
-    </a>
+    <td>
+        <?php echo number_format($expense['amount'], 2); ?> ETB
+    </td>
 
-    |
+    <td>
+        <?php echo htmlspecialchars($expense['description']); ?>
+    </td>
 
-    <a
-        href="delete.php?id=<?php echo $expense['id']; ?>"
-        onclick="return confirm('Are you sure you want to delete this expense?');"
-    >
-        Delete
-    </a>
-</td>
-            </tr>
+    <td>
+
+        <a href="edit.php?id=<?php echo $expense['id']; ?>">
+            Edit
+        </a>
+
+        |
+
+        <a
+            href="delete.php?id=<?php echo $expense['id']; ?>"
+            onclick="return confirm('Are you sure you want to delete this expense?');"
+        >
+            Delete
+        </a>
+
+    </td>
+
+</tr>
 
         <?php endforeach; ?>
 

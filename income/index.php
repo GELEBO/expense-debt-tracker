@@ -53,7 +53,7 @@ $incomes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             ← Back to Dashboard
         </a>
     </p>
-
+    
     <p>
         <a href="create.php">
             + Add Income
