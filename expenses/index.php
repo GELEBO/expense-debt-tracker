@@ -1,7 +1,17 @@
 <?php
 
 require_once "../config/database.php";
-$stmt = $pdo->query("
+
+/*
+|--------------------------------------------------------------------------
+| Expense History Filter
+|--------------------------------------------------------------------------
+*/
+
+$fromDate = $_GET['from_date'] ?? '';
+$toDate = $_GET['to_date'] ?? '';
+
+$sql = "
     SELECT
         expenses.id,
         expenses.expense_date,
@@ -11,10 +21,44 @@ $stmt = $pdo->query("
     FROM expenses
     JOIN categories
         ON expenses.category_id = categories.id
-    ORDER BY expenses.expense_date DESC
-");
+";
+
+$params = [];
+$conditions = [];
+
+if ($fromDate !== '') {
+    $conditions[] = "expenses.expense_date >= :from_date";
+    $params[':from_date'] = $fromDate;
+}
+
+if ($toDate !== '') {
+    $conditions[] = "expenses.expense_date <= :to_date";
+    $params[':to_date'] = $toDate;
+}
+
+if (!empty($conditions)) {
+    $sql .= " WHERE " . implode(" AND ", $conditions);
+}
+
+$sql .= " ORDER BY expenses.expense_date DESC, expenses.id DESC";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 
 $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+/*
+|--------------------------------------------------------------------------
+| Calculate Total Expenses
+|--------------------------------------------------------------------------
+*/
+
+$totalExpenses = 0;
+
+foreach ($expenses as $expense) {
+    $totalExpenses += (float) $expense['amount'];
+}
 
 ?>
 
@@ -37,6 +81,45 @@ $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <p>
     <a href="create.php">+ Add Expense</a>
     </p>
+    <form method="GET">
+
+    <label for="from_date">
+        From:
+    </label>
+
+    <input
+        type="date"
+        id="from_date"
+        name="from_date"
+        value="<?php echo htmlspecialchars($fromDate); ?>"
+    >
+
+    <label for="to_date">
+        To:
+    </label>
+
+    <input
+        type="date"
+        id="to_date"
+        name="to_date"
+        value="<?php echo htmlspecialchars($toDate); ?>"
+    >
+
+    <button type="submit">
+        Filter
+    </button>
+
+    <a href="index.php">
+        Clear
+    </a>
+
+</form>
+
+<h2>
+    Total Expenses:
+    <?php echo number_format($totalExpenses, 2); ?>
+    ETB
+</h2>
 
     <table border="1" cellpadding="10">
         <thead>

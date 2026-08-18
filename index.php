@@ -1,22 +1,89 @@
 <?php
 
 require_once "config/database.php";
+require_once "includes/interest.php";
 
-$stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) AS total_expenses FROM expenses");
+$stmt = $pdo->query("
+    SELECT COALESCE(SUM(amount), 0) AS total_expenses
+    FROM expenses
+");
+
 $totalExpenses = $stmt->fetch(PDO::FETCH_ASSOC)['total_expenses'];
 
-$stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) AS total_income FROM income");
+$stmt = $pdo->query("
+    SELECT COALESCE(SUM(amount), 0) AS total_income
+    FROM income
+");
+
 $totalIncome = $stmt->fetch(PDO::FETCH_ASSOC)['total_income'];
 
 $currentBalance = $totalIncome - $totalExpenses;
 
-$stmt = $pdo->query("SELECT COALESCE(SUM(original_amount), 0) AS total_debt FROM debts");
-$totalDebt = $stmt->fetch(PDO::FETCH_ASSOC)['total_debt'];
 
-$stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) AS total_paid FROM debt_payments");
-$totalPaid = $stmt->fetch(PDO::FETCH_ASSOC)['total_paid'];
+/*
+|--------------------------------------------------------------------------
+| Debt Calculations
+|--------------------------------------------------------------------------
+*/
 
-$remainingDebt = $totalDebt - $totalPaid;
+$stmt = $pdo->query("
+    SELECT
+        id,
+        original_amount,
+        interest_rate,
+        interest_period,
+        interest_start_date
+    FROM debts
+");
+
+$debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$totalDebt = 0;
+$totalPaid = 0;
+$remainingPrincipal = 0;
+$totalAccruedInterest = 0;
+$totalAmountOwed = 0;
+
+foreach ($debts as $debt) {
+
+    $originalAmount = (float) $debt['original_amount'];
+
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(SUM(amount), 0)
+        FROM debt_payments
+        WHERE debt_id = :debt_id
+    ");
+
+    $stmt->execute([
+        ':debt_id' => $debt['id']
+    ]);
+
+    $paid = (float) $stmt->fetchColumn();
+
+    $remaining = max(
+        0,
+        $originalAmount - $paid
+    );
+
+    $elapsedDays = calculateElapsedDays(
+        $debt['interest_start_date']
+    );
+
+    $accruedInterest = calculateAccruedInterest(
+        $remaining,
+        (float) $debt['interest_rate'],
+        $debt['interest_period'],
+        $elapsedDays
+    );
+
+    $totalDebt += $originalAmount;
+    $totalPaid += $paid;
+    $remainingPrincipal += $remaining;
+    $totalAccruedInterest += $accruedInterest;
+}
+
+$totalAmountOwed =
+    $remainingPrincipal + $totalAccruedInterest;
 
 ?>
 
@@ -70,20 +137,29 @@ $remainingDebt = $totalDebt - $totalPaid;
     </div>
 
     <div class="summary-card">
-        <h2>Total Debt</h2>
-        <p><?php echo number_format($totalDebt, 2); ?> ETB</p>
-    </div>
+    <h2>Total Original Debt</h2>
+    <p><?php echo number_format($totalDebt, 2); ?> ETB</p>
+</div>
 
-    <div class="summary-card">
-        <h2>Total Debt Paid</h2>
-        <p><?php echo number_format($totalPaid, 2); ?> ETB</p>
-    </div>
+<div class="summary-card">
+    <h2>Total Debt Paid</h2>
+    <p><?php echo number_format($totalPaid, 2); ?> ETB</p>
+</div>
 
-    <div class="summary-card">
-        <h2>Remaining Debt</h2>
-        <p><?php echo number_format($remainingDebt, 2); ?> ETB</p>
-    </div>
+<div class="summary-card">
+    <h2>Remaining Principal</h2>
+    <p><?php echo number_format($remainingPrincipal, 2); ?> ETB</p>
+</div>
 
+<div class="summary-card">
+    <h2>Accrued Interest</h2>
+    <p><?php echo number_format($totalAccruedInterest, 2); ?> ETB</p>
+</div>
+
+<div class="summary-card">
+    <h2>Total Amount Owed</h2>
+    <p><?php echo number_format($totalAmountOwed, 2); ?> ETB</p>
+</div>
 </div>
 
 
