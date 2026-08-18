@@ -42,6 +42,7 @@ $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <th>Category</th>
                 <th>Amount</th>
                 <th>Description</th>
+                <th>Action</th>
             </tr>
         </thead>
 
@@ -65,6 +66,11 @@ $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <td>
                     <?php echo htmlspecialchars($expense['description']); ?>
                 </td>
+                <td>
+    <a href="edit.php?id=<?php echo $expense['id']; ?>">
+        Edit
+    </a>
+</td>
             </tr>
 
         <?php endforeach; ?>
