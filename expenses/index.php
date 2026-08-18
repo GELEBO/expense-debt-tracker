@@ -70,6 +70,15 @@ $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <a href="edit.php?id=<?php echo $expense['id']; ?>">
         Edit
     </a>
+
+    |
+
+    <a
+        href="delete.php?id=<?php echo $expense['id']; ?>"
+        onclick="return confirm('Are you sure you want to delete this expense?');"
+    >
+        Delete
+    </a>
 </td>
             </tr>
 
