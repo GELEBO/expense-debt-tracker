@@ -203,6 +203,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 min="0"
                 value="<?php echo htmlspecialchars($debt['interest_rate']); ?>"
             >
+            <label for="interest_period">Interest Period:</label>
+
+<select id="interest_period" name="interest_period" required>
+    <option value="daily">Daily</option>
+    <option value="monthly">Monthly</option>
+    <option value="yearly">Yearly</option>
+</select>
+
+<label for="interest_start_date">Interest Start Date:</label>
+
+<input
+    type="date"
+    id="interest_start_date"
+    name="interest_start_date"
+    required
+>
 
         </div>
 

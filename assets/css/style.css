@@ -81,3 +81,178 @@ h1 {
     opacity: 0.85;
     transform: translateY(-2px);
 }
+
+/* =========================
+   GENERAL PAGE STYLING
+   ========================= */
+
+   body {
+    line-height: 1.6;
+}
+
+a {
+    color: #2563EB;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+p {
+    margin-bottom: 15px;
+}
+
+
+/* =========================
+   PAGE CONTAINER
+   ========================= */
+
+body > h1,
+body > p,
+body > form,
+body > table {
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* =========================
+   TABLE STYLING
+   ========================= */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+th {
+    background: #0f172a;
+    color: white;
+    text-align: left;
+    padding: 14px;
+}
+
+td {
+    padding: 14px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+tbody tr:hover {
+    background: #f8fafc;
+}
+
+
+/* =========================
+   FORM STYLING
+   ========================= */
+
+form {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+form input,
+form select,
+form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 15px;
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+    outline: none;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+form button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background: #2563EB;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+form button:hover {
+    opacity: 0.85;
+}
+
+
+/* =========================
+   ACTION LINKS
+   ========================= */
+
+td a {
+    font-weight: 600;
+}
+/* =========================
+   PAGE NAVIGATION LINKS
+   ========================= */
+
+   body > p a {
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+body > p a:hover {
+    background: #cbd5e1;
+    text-decoration: none;
+}
+/* =========================
+   TABLE ACTION LINKS
+   ========================= */
+
+   td a {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 5px 9px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+td a:hover {
+    background: #cbd5e1;
+    text-decoration: none;
+}
+/* =========================
+   RESPONSIVE TABLES
+   ========================= */
+
+   .table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-container table {
+    min-width: 700px;
+}

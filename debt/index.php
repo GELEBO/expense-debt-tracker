@@ -1,7 +1,7 @@
 <?php
 
 require_once "../config/database.php";
-
+require_once "../includes/interest.php";
 /*
 |--------------------------------------------------------------------------
 | Fetch Debts
@@ -15,6 +15,8 @@ $stmt = $pdo->query("
         debts.description,
         debts.original_amount,
         debts.interest_rate,
+        debts.interest_period,
+        debts.interest_start_date,
         debts.due_date,
         debts.status,
 
@@ -72,24 +74,22 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             + Add Debt
         </a>
     </p>
-
-    <table border="1" cellpadding="10">
-
+    <div class="table-container">
+         <table border="1" cellpadding="10">
         <thead>
-
-            <tr>
-
-                <th>Creditor</th>
-                <th>Description</th>
-                <th>Original Amount</th>
-                <th>Interest Rate</th>
-                <th>Total Paid</th>
-                <th>Remaining</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Action</th>
-
-            </tr>
+        <tr>
+    <th>Creditor</th>
+    <th>Description</th>
+    <th>Original Amount</th>
+    <th>Interest Rate</th>
+    <th>Total Paid</th>
+    <th>Remaining Principal</th>
+    <th>Accrued Interest</th>
+    <th>Total Owed</th>
+    <th>Due Date</th>
+    <th>Status</th>
+    <th>Action</th>
+     </tr>
 
         </thead>
 
@@ -99,10 +99,25 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             <?php
 
-            $remaining =
-                $debt['original_amount']
-                - $debt['total_paid'];
+                  $remaining =
+                        max(
+                             0,
+                                   (float) $debt['original_amount']
+                                  - (float) $debt['total_paid']
+                            );
 
+                  $elapsedDays = calculateElapsedDays(
+                  $debt['interest_start_date']
+                    );
+
+                   $accruedInterest = calculateAccruedInterest(
+                       $remaining,
+                     (float) $debt['interest_rate'],
+                      $debt['interest_period'],
+                  $elapsedDays
+                         );
+
+                   $totalOwed = $remaining + $accruedInterest;
             ?>
 
             <tr>
@@ -161,6 +176,19 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     ?>
                     ETB
                 </td>
+                <td>
+           <?php
+                echo number_format(   $accruedInterest, 2 );
+                ?>
+                ETB
+                  </td>
+
+                <td>
+           <?php
+               echo number_format(  $totalOwed,  2 );
+                 ?>
+                 ETB
+                   </td>
 
                 <td>
                     <?php
@@ -179,8 +207,11 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </td>
 
                 <td>
+                <a href="view.php?id=<?php echo $debt['id']; ?>"> View
+                  </a>
+|
 
-    <a href="edit.php?id=<?php echo $debt['id']; ?>">
+                <a href="edit.php?id=<?php echo $debt['id']; ?>">
         Edit
     </a>
     |
@@ -203,7 +234,7 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         Delete
     </a>
 
-</td>
+        </td>
 
             </tr>
 
@@ -212,7 +243,7 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </tbody>
 
     </table>
-
+    </div>
 </body>
 
 </html>

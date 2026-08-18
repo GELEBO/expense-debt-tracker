@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description'] ?? '');
     $original_amount = $_POST['original_amount'] ?? '';
     $interest_rate = $_POST['interest_rate'] ?? 0;
+    $interest_period = $_POST['interest_period'] ?? 'monthly';
+    $interest_start_date = $_POST['interest_start_date'] ?? '';
     $due_date = $_POST['due_date'] ?? '';
 
     /*
@@ -25,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (
         empty($creditor) ||
         empty($original_amount) ||
+        empty($interest_start_date) ||
         empty($due_date)
     ) {
         die("Please fill in all required fields.");
@@ -36,6 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!is_numeric($interest_rate) || $interest_rate < 0) {
         die("Please enter a valid interest rate.");
+    }
+
+    $allowed_periods = ['daily', 'monthly', 'yearly'];
+
+    if (!in_array($interest_period, $allowed_periods, true)) {
+        die("Please select a valid interest period.");
     }
 
     /*
@@ -52,11 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             description,
             original_amount,
             interest_rate,
+            interest_period,
+            interest_start_date,
             due_date,
             status
         )
         VALUES
         (
+            ?,
+            ?,
             ?,
             ?,
             ?,
@@ -73,6 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description,
         $original_amount,
         $interest_rate,
+        $interest_period,
+        $interest_start_date,
         $due_date,
         'active'
     ]);
@@ -188,6 +203,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 step="0.01"
                 min="0"
                 value="0"
+                required
+            >
+
+        </div>
+
+        <br>
+
+        <div>
+
+            <label for="interest_period">
+                Interest Period:
+            </label>
+
+            <select
+                id="interest_period"
+                name="interest_period"
+                required
+            >
+                <option value="daily">Daily</option>
+                <option value="monthly" selected>Monthly</option>
+                <option value="yearly">Yearly</option>
+            </select>
+
+        </div>
+
+        <br>
+
+        <div>
+
+            <label for="interest_start_date">
+                Interest Start Date:
+            </label>
+
+            <input
+                type="date"
+                id="interest_start_date"
+                name="interest_start_date"
+                required
             >
 
         </div>
