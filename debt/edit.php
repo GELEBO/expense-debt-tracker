@@ -27,6 +27,8 @@ $stmt = $pdo->prepare("
         description,
         original_amount,
         interest_rate,
+        interest_period,
+        interest_start_date,
         due_date,
         status
     FROM debts
@@ -53,12 +55,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description'] ?? '');
     $original_amount = $_POST['original_amount'] ?? '';
     $interest_rate = $_POST['interest_rate'] ?? 0;
+    $interest_period = $_POST['interest_period'] ?? '';
+    $interest_start_date = $_POST['interest_start_date'] ?? '';
     $due_date = $_POST['due_date'] ?? '';
     $status = $_POST['status'] ?? '';
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
 
     if (
         empty($creditor) ||
         empty($original_amount) ||
+        empty($interest_period) ||
+        empty($interest_start_date) ||
         empty($due_date) ||
         empty($status)
     ) {
@@ -73,6 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("Please enter a valid interest rate.");
     }
 
+    if (!in_array($interest_period, ['daily', 'monthly', 'yearly'], true)) {
+        die("Invalid interest period.");
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Debt
+    |--------------------------------------------------------------------------
+    */
+
     $updateStmt = $pdo->prepare("
         UPDATE debts
         SET
@@ -80,6 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             description = ?,
             original_amount = ?,
             interest_rate = ?,
+            interest_period = ?,
+            interest_start_date = ?,
             due_date = ?,
             status = ?
         WHERE id = ?
@@ -90,6 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description,
         $original_amount,
         $interest_rate,
+        $interest_period,
+        $interest_start_date,
         $due_date,
         $status,
         $id
@@ -203,22 +229,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 min="0"
                 value="<?php echo htmlspecialchars($debt['interest_rate']); ?>"
             >
-            <label for="interest_period">Interest Period:</label>
 
-<select id="interest_period" name="interest_period" required>
-    <option value="daily">Daily</option>
-    <option value="monthly">Monthly</option>
-    <option value="yearly">Yearly</option>
-</select>
+        </div>
 
-<label for="interest_start_date">Interest Start Date:</label>
+        <br>
 
-<input
-    type="date"
-    id="interest_start_date"
-    name="interest_start_date"
-    required
->
+        <div>
+
+            <label for="interest_period">
+                Interest Period:
+            </label>
+
+            <select
+                id="interest_period"
+                name="interest_period"
+                required
+            >
+
+                <option
+                    value="daily"
+                    <?php
+                    if ($debt['interest_period'] === 'daily') {
+                        echo 'selected';
+                    }
+                    ?>
+                >
+                    Daily
+                </option>
+
+                <option
+                    value="monthly"
+                    <?php
+                    if ($debt['interest_period'] === 'monthly') {
+                        echo 'selected';
+                    }
+                    ?>
+                >
+                    Monthly
+                </option>
+
+                <option
+                    value="yearly"
+                    <?php
+                    if ($debt['interest_period'] === 'yearly') {
+                        echo 'selected';
+                    }
+                    ?>
+                >
+                    Yearly
+                </option>
+
+            </select>
+
+        </div>
+
+        <br>
+
+        <div>
+
+            <label for="interest_start_date">
+                Interest Start Date:
+            </label>
+
+            <input
+                type="date"
+                id="interest_start_date"
+                name="interest_start_date"
+                value="<?php echo htmlspecialchars($debt['interest_start_date']); ?>"
+                required
+            >
 
         </div>
 
