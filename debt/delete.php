@@ -2,7 +2,17 @@
 
 require_once "../config/database.php";
 
-$id = $_GET['id'] ?? null;
+/*
+|--------------------------------------------------------------------------
+| Delete Debt
+|--------------------------------------------------------------------------
+*/
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    die("Invalid request.");
+}
+
+$id = $_POST['id'] ?? null;
 
 if (!$id || !is_numeric($id)) {
     die("Invalid debt ID.");
@@ -40,6 +50,12 @@ $deleteStmt = $pdo->prepare("
 ");
 
 $deleteStmt->execute([$id]);
+
+/*
+|--------------------------------------------------------------------------
+| Return to Debts
+|--------------------------------------------------------------------------
+*/
 
 header("Location: index.php");
 exit;

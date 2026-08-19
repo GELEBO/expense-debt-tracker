@@ -162,12 +162,22 @@ foreach ($expenses as $expense) {
 
         |
 
-        <a
-            href="delete.php?id=<?php echo $expense['id']; ?>"
-            onclick="return confirm('Are you sure you want to delete this expense?');"
-        >
-            Delete
-        </a>
+        <form
+    method="POST"
+    action="delete.php"
+    style="display: inline;"
+    onsubmit="return confirm('Are you sure you want to delete this expense?');"
+>
+    <input
+        type="hidden"
+        name="id"
+        value="<?php echo $expense['id']; ?>"
+    >
+
+    <button type="submit">
+        Delete
+    </button>
+</form>
 
     </td>
 

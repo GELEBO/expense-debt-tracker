@@ -227,12 +227,21 @@ $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     |
 
-    <a
-        href="delete.php?id=<?php echo $debt['id']; ?>"
-        onclick="return confirm('Are you sure you want to delete this debt?');"
+    <form
+    method="POST"
+    action="delete.php"
+    onsubmit="return confirm('Are you sure you want to delete this debt?');"
+>
+    <input
+        type="hidden"
+        name="id"
+        value="<?php echo $debt['id']; ?>"
     >
+
+    <button type="submit">
         Delete
-    </a>
+    </button>
+</form>
 
         </td>
 

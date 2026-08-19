@@ -4,11 +4,15 @@ require_once "../config/database.php";
 
 /*
 |--------------------------------------------------------------------------
-| Get Expense ID
+| Delete Expense
 |--------------------------------------------------------------------------
 */
 
-$id = $_GET['id'] ?? null;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    die("Invalid request.");
+}
+
+$id = $_POST['id'] ?? null;
 
 if (!$id || !is_numeric($id)) {
     die("Invalid expense ID.");

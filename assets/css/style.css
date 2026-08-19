@@ -243,3 +243,33 @@ td a:hover {
 .table-container table {
     min-width: 700px;
 }
+/* =========================
+   TABLE ACTION BUTTONS
+   ========================= */
+
+   td form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+}
+
+td form button {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 5px 9px;
+    border: none;
+    border-radius: 5px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: normal;
+    background: #e2e8f0;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+td form button:hover {
+    background: #cbd5e1;
+}

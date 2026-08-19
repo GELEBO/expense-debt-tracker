@@ -199,12 +199,21 @@ foreach ($incomes as $income) {
 
                     |
 
-                    <a
-                       href="delete.php?id=<?php echo $income['id']; ?>"
-                       onclick="return confirm('Are you sure you want to delete this income record?');"
-                         >
-                      Delete
-                    </a>
+                    <form
+    method="POST"
+    action="delete.php"
+    onsubmit="return confirm('Are you sure you want to delete this income record?');"
+>
+    <input
+        type="hidden"
+        name="id"
+        value="<?php echo $income['id']; ?>"
+    >
+
+    <button type="submit">
+        Delete
+    </button>
+</form>
 
                 </td>
 

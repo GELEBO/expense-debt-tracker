@@ -2,7 +2,17 @@
 
 require_once "../config/database.php";
 
-$id = $_GET['id'] ?? null;
+/*
+|--------------------------------------------------------------------------
+| Delete Income
+|--------------------------------------------------------------------------
+*/
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    die("Invalid request.");
+}
+
+$id = $_POST['id'] ?? null;
 
 if (!$id || !is_numeric($id)) {
     die("Invalid income ID.");
@@ -40,6 +50,12 @@ $deleteStmt = $pdo->prepare("
 ");
 
 $deleteStmt->execute([$id]);
+
+/*
+|--------------------------------------------------------------------------
+| Return to Income
+|--------------------------------------------------------------------------
+*/
 
 header("Location: index.php");
 exit;
