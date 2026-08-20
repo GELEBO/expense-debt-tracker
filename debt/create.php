@@ -1,5 +1,6 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
 
 /*
@@ -81,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
 
     $stmt->execute([
-        1,
+        $_SESSION['user_id'],
         $creditor,
         $description,
         $original_amount,

@@ -1,21 +1,49 @@
 <?php
 
+require_once "includes/auth.php";
 require_once "config/database.php";
 require_once "includes/interest.php";
 
-$stmt = $pdo->query("
-    SELECT COALESCE(SUM(amount), 0) AS total_expenses
-    FROM expenses
-");
+$userId = $_SESSION['user_id'];
 
-$totalExpenses = $stmt->fetch(PDO::FETCH_ASSOC)['total_expenses'];
 
-$stmt = $pdo->query("
+/*
+|--------------------------------------------------------------------------
+| Income
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare("
     SELECT COALESCE(SUM(amount), 0) AS total_income
     FROM income
+    WHERE user_id = :user_id
 ");
 
-$totalIncome = $stmt->fetch(PDO::FETCH_ASSOC)['total_income'];
+$stmt->execute([
+    ':user_id' => $userId
+]);
+
+$totalIncome = (float) $stmt->fetch(PDO::FETCH_ASSOC)['total_income'];
+
+
+/*
+|--------------------------------------------------------------------------
+| Expenses
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare("
+    SELECT COALESCE(SUM(amount), 0) AS total_expenses
+    FROM expenses
+    WHERE user_id = :user_id
+");
+
+$stmt->execute([
+    ':user_id' => $userId
+]);
+
+$totalExpenses = (float) $stmt->fetch(PDO::FETCH_ASSOC)['total_expenses'];
+
 
 $currentBalance = $totalIncome - $totalExpenses;
 
@@ -26,7 +54,7 @@ $currentBalance = $totalIncome - $totalExpenses;
 |--------------------------------------------------------------------------
 */
 
-$stmt = $pdo->query("
+$stmt = $pdo->prepare("
     SELECT
         id,
         original_amount,
@@ -34,9 +62,15 @@ $stmt = $pdo->query("
         interest_period,
         interest_start_date
     FROM debts
+    WHERE user_id = :user_id
 ");
 
+$stmt->execute([
+    ':user_id' => $userId
+]);
+
 $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 $totalDebt = 0;
 $totalPaid = 0;
@@ -44,9 +78,17 @@ $remainingPrincipal = 0;
 $totalAccruedInterest = 0;
 $totalAmountOwed = 0;
 
+
 foreach ($debts as $debt) {
 
     $originalAmount = (float) $debt['original_amount'];
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Debt Payments
+    |--------------------------------------------------------------------------
+    */
 
     $stmt = $pdo->prepare("
         SELECT COALESCE(SUM(amount), 0)
@@ -60,14 +102,29 @@ foreach ($debts as $debt) {
 
     $paid = (float) $stmt->fetchColumn();
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Remaining Principal
+    |--------------------------------------------------------------------------
+    */
+
     $remaining = max(
         0,
         $originalAmount - $paid
     );
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Interest Calculation
+    |--------------------------------------------------------------------------
+    */
+
     $elapsedDays = calculateElapsedDays(
         $debt['interest_start_date']
     );
+
 
     $accruedInterest = calculateAccruedInterest(
         $remaining,
@@ -76,11 +133,22 @@ foreach ($debts as $debt) {
         $elapsedDays
     );
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Totals
+    |--------------------------------------------------------------------------
+    */
+
     $totalDebt += $originalAmount;
+
     $totalPaid += $paid;
+
     $remainingPrincipal += $remaining;
+
     $totalAccruedInterest += $accruedInterest;
 }
+
 
 $totalAmountOwed =
     $remainingPrincipal + $totalAccruedInterest;
@@ -89,79 +157,223 @@ $totalAmountOwed =
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Expense & Debt Tracker</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+
+    <link
+        rel="stylesheet"
+        href="assets/css/style.css"
+    >
+
 </head>
 
 <body>
 
-<h1>Expense & Debt Tracker</h1>
+    <!-- =========================
+         DASHBOARD HEADER
+         ========================= -->
 
-<p class="dashboard-intro">
-    Welcome to your financial dashboard.
-</p>
-<nav class="dashboard-nav">
+    <div class="dashboard-header">
 
-    <a href="income/index.php">
-        Income
-    </a>
+        <div class="dashboard-title">
 
-    <a href="expenses/index.php">
-        Expenses
-    </a>
+            <h1>
+                Expense & Debt Tracker
+            </h1>
 
-    <a href="debt/index.php">
-        Debts
-    </a>
+            <p class="dashboard-intro">
+                Welcome to your financial dashboard.
+            </p>
 
-</nav>
+        </div>
 
-<div class="summary-grid">
+        <div class="user-actions">
 
-    <div class="summary-card">
-        <h2>Total Income</h2>
-        <p><?php echo number_format($totalIncome, 2); ?> ETB</p>
+            <a
+                href="users/logout.php"
+                class="logout-btn"
+            >
+                Logout
+            </a>
+
+        </div>
+
     </div>
 
-    <div class="summary-card">
-        <h2>Total Expenses</h2>
-        <p><?php echo number_format($totalExpenses, 2); ?> ETB</p>
+
+    <!-- =========================
+         FINANCIAL SUMMARY
+         ========================= -->
+
+    <div class="summary-grid">
+
+        <div class="summary-card">
+
+            <h2>Total Income</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $totalIncome,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <h2>Total Expenses</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $totalExpenses,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <h2>Current Balance</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $currentBalance,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <h2>Total Original Debt</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $totalDebt,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <h2>Total Debt Paid</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $totalPaid,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <h2>Remaining Principal</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $remainingPrincipal,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <h2>Accrued Interest</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $totalAccruedInterest,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <h2>Total Amount Owed</h2>
+
+            <p>
+                <?php
+                echo number_format(
+                    $totalAmountOwed,
+                    2
+                );
+                ?>
+                ETB
+            </p>
+
+        </div>
+
     </div>
 
-    <div class="summary-card">
-        <h2>Current Balance</h2>
-        <p><?php echo number_format($currentBalance, 2); ?> ETB</p>
-    </div>
 
-    <div class="summary-card">
-    <h2>Total Original Debt</h2>
-    <p><?php echo number_format($totalDebt, 2); ?> ETB</p>
-</div>
+    <!-- =========================
+         DASHBOARD NAVIGATION
+         ========================= -->
 
-<div class="summary-card">
-    <h2>Total Debt Paid</h2>
-    <p><?php echo number_format($totalPaid, 2); ?> ETB</p>
-</div>
+    <nav class="dashboard-nav">
 
-<div class="summary-card">
-    <h2>Remaining Principal</h2>
-    <p><?php echo number_format($remainingPrincipal, 2); ?> ETB</p>
-</div>
+        <a href="income/index.php">
+            Income
+        </a>
 
-<div class="summary-card">
-    <h2>Accrued Interest</h2>
-    <p><?php echo number_format($totalAccruedInterest, 2); ?> ETB</p>
-</div>
+        <a href="expenses/index.php">
+            Expenses
+        </a>
 
-<div class="summary-card">
-    <h2>Total Amount Owed</h2>
-    <p><?php echo number_format($totalAmountOwed, 2); ?> ETB</p>
-</div>
-</div>
+        <a href="debt/index.php">
+            Debts
+        </a>
 
+    </nav>
 
 </body>
+
 </html>

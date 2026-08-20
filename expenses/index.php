@@ -1,5 +1,6 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
 
 /*
@@ -22,9 +23,23 @@ $sql = "
     JOIN categories
         ON expenses.category_id = categories.id
 ";
-
 $params = [];
 $conditions = [];
+
+/*
+|--------------------------------------------------------------------------
+| User Filter
+|--------------------------------------------------------------------------
+*/
+
+$conditions[] = "expenses.user_id = :user_id";
+$params[':user_id'] = $_SESSION['user_id'];
+
+/*
+|--------------------------------------------------------------------------
+| Date Filters
+|--------------------------------------------------------------------------
+*/
 
 if ($fromDate !== '') {
     $conditions[] = "expenses.expense_date >= :from_date";

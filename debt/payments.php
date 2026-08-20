@@ -1,6 +1,7 @@
 <?php
 
 require_once "../config/database.php";
+require_once "../includes/interest.php";
 
 /*
 |--------------------------------------------------------------------------
@@ -24,12 +25,18 @@ $debtStmt = $pdo->prepare("
     SELECT
         id,
         creditor,
-        original_amount
+        original_amount,
+        interest_rate,
+        interest_period,
+        interest_start_date,
+        status
     FROM debts
     WHERE id = ?
 ");
 
-$debtStmt->execute([$debt_id]);
+$debtStmt->execute([
+    $debt_id
+]);
 
 $debt = $debtStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -41,6 +48,11 @@ if (!$debt) {
 |--------------------------------------------------------------------------
 | Fetch Payment History
 |--------------------------------------------------------------------------
+|
+| IMPORTANT:
+| Payments are retrieved chronologically because the calculation
+| engine processes them in chronological order.
+|
 */
 
 $paymentStmt = $pdo->prepare("
@@ -51,12 +63,36 @@ $paymentStmt = $pdo->prepare("
         note
     FROM debt_payments
     WHERE debt_id = ?
-    ORDER BY payment_date DESC, id DESC
+    ORDER BY payment_date ASC, id ASC
 ");
 
-$paymentStmt->execute([$debt_id]);
+$paymentStmt->execute([
+    $debt_id
+]);
 
 $payments = $paymentStmt->fetchAll(PDO::FETCH_ASSOC);
+
+/*
+|--------------------------------------------------------------------------
+| Calculate Debt
+|--------------------------------------------------------------------------
+*/
+
+$balance = calculateDebtBalance(
+    (float) $debt['original_amount'],
+    (float) $debt['interest_rate'],
+    $debt['interest_period'],
+    $debt['interest_start_date'],
+    $payments
+);
+
+/*
+|--------------------------------------------------------------------------
+| Calculated Payment History
+|--------------------------------------------------------------------------
+*/
+
+$paymentHistory = $balance['payment_history'];
 
 ?>
 
@@ -96,11 +132,11 @@ $payments = $paymentStmt->fetchAll(PDO::FETCH_ASSOC);
     </h2>
 
     <p>
-        Original Debt:
+        Original Principal:
         <strong>
             <?php
             echo number_format(
-                $debt['original_amount'],
+                $balance['original_principal'],
                 2
             );
             ?>
@@ -108,23 +144,119 @@ $payments = $paymentStmt->fetchAll(PDO::FETCH_ASSOC);
         </strong>
     </p>
 
-    <?php if (count($payments) > 0): ?>
+    <p>
+        Interest Rate:
+        <strong>
+            <?php
+            echo number_format(
+                (float) $debt['interest_rate'],
+                2
+            );
+            ?>%
+            <?php echo htmlspecialchars($debt['interest_period']); ?>
+        </strong>
+    </p>
+
+    <p>
+        Principal Remaining:
+        <strong>
+            <?php
+            echo number_format(
+                $balance['principal'],
+                2
+            );
+            ?>
+            ETB
+        </strong>
+    </p>
+
+    <p>
+        Accrued Interest:
+        <strong>
+            <?php
+            echo number_format(
+                $balance['accrued_interest'],
+                2
+            );
+            ?>
+            ETB
+        </strong>
+    </p>
+
+    <p>
+        Total Owed:
+        <strong>
+            <?php
+            echo number_format(
+                $balance['total_owed'],
+                2
+            );
+            ?>
+            ETB
+        </strong>
+    </p>
+
+    <p>
+        Total Paid:
+        <strong>
+            <?php
+            echo number_format(
+                $balance['total_paid'],
+                2
+            );
+            ?>
+            ETB
+        </strong>
+    </p>
+
+    <p>
+        Status:
+        <strong>
+            <?php
+            echo htmlspecialchars(
+                $balance['status']
+            );
+            ?>
+        </strong>
+    </p>
+
+    <hr>
+
+    <h3>Payment Records</h3>
+
+    <?php if (count($paymentHistory) > 0): ?>
 
         <table border="1" cellpadding="10">
 
             <thead>
 
                 <tr>
+
                     <th>Date</th>
-                    <th>Amount</th>
+
+                    <th>Payment</th>
+
+                    <th>Days</th>
+
+                    <th>Interest Accrued</th>
+
+                    <th>Interest Paid</th>
+
+                    <th>Principal Paid</th>
+
+                    <th>Remaining Principal</th>
+
+                    <th>Remaining Interest</th>
+
                     <th>Note</th>
+
                 </tr>
 
             </thead>
 
             <tbody>
 
-            <?php foreach ($payments as $payment): ?>
+            <?php foreach ($paymentHistory as $payment): ?>
 
                 <tr>
 
@@ -139,7 +271,63 @@ $payments = $paymentStmt->fetchAll(PDO::FETCH_ASSOC);
                     <td>
                         <?php
                         echo number_format(
-                            $payment['amount'],
+                            $payment['payment_amount'],
+                            2
+                        );
+                        ?>
+                        ETB
+                    </td>
+
+                    <td>
+                        <?php
+                        echo $payment['elapsed_days'];
+                        ?>
+                    </td>
+
+                    <td>
+                        <?php
+                        echo number_format(
+                            $payment['interest_accrued'],
+                            2
+                        );
+                        ?>
+                        ETB
+                    </td>
+
+                    <td>
+                        <?php
+                        echo number_format(
+                            $payment['interest_paid'],
+                            2
+                        );
+                        ?>
+                        ETB
+                    </td>
+
+                    <td>
+                        <?php
+                        echo number_format(
+                            $payment['principal_paid'],
+                            2
+                        );
+                        ?>
+                        ETB
+                    </td>
+
+                    <td>
+                        <?php
+                        echo number_format(
+                            $payment['remaining_principal'],
+                            2
+                        );
+                        ?>
+                        ETB
+                    </td>
+
+                    <td>
+                        <?php
+                        echo number_format(
+                            $payment['remaining_interest'],
                             2
                         );
                         ?>

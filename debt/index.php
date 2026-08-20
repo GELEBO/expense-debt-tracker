@@ -1,5 +1,6 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
 require_once "../includes/interest.php";
 /*
@@ -8,7 +9,13 @@ require_once "../includes/interest.php";
 |--------------------------------------------------------------------------
 */
 
-$stmt = $pdo->query("
+/*
+|--------------------------------------------------------------------------
+| Fetch User's Debts
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare("
     SELECT
         debts.id,
         debts.creditor,
@@ -31,8 +38,14 @@ $stmt = $pdo->query("
 
     FROM debts
 
+    WHERE debts.user_id = :user_id
+
     ORDER BY debts.due_date ASC
 ");
+
+$stmt->execute([
+    ':user_id' => $_SESSION['user_id']
+]);
 
 $debts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

@@ -1,6 +1,10 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
+require_once "../includes/interest.php";
+
+$userId = $_SESSION['user_id'];
 
 /*
 |--------------------------------------------------------------------------
@@ -24,12 +28,20 @@ $stmt = $pdo->prepare("
     SELECT
         id,
         creditor,
-        original_amount
+        original_amount,
+        interest_rate,
+        interest_period,
+        interest_start_date,
+        status
     FROM debts
     WHERE id = ?
+    AND user_id = ?
 ");
 
-$stmt->execute([$debt_id]);
+$stmt->execute([
+    $debt_id,
+    $userId
+]);
 
 $debt = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -39,21 +51,39 @@ if (!$debt) {
 
 /*
 |--------------------------------------------------------------------------
-| Calculate Total Paid
+| Fetch Payment History
 |--------------------------------------------------------------------------
 */
 
-$paidStmt = $pdo->prepare("
-    SELECT COALESCE(SUM(amount), 0)
+$paymentsStmt = $pdo->prepare("
+    SELECT
+        payment_date,
+        amount,
+        note
     FROM debt_payments
     WHERE debt_id = ?
+    ORDER BY payment_date ASC, id ASC
 ");
 
-$paidStmt->execute([$debt_id]);
+$paymentsStmt->execute([
+    $debt_id
+]);
 
-$total_paid = $paidStmt->fetchColumn();
+$payments = $paymentsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$remaining = $debt['original_amount'] - $total_paid;
+/*
+|--------------------------------------------------------------------------
+| Calculate Current Debt Balance
+|--------------------------------------------------------------------------
+*/
+
+$balance = calculateDebtBalance(
+    (float) $debt['original_amount'],
+    (float) $debt['interest_rate'],
+    $debt['interest_period'],
+    $debt['interest_start_date'],
+    $payments
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -67,17 +97,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = $_POST['amount'] ?? '';
     $note = trim($_POST['note'] ?? '');
 
-    if (empty($payment_date) || empty($amount)) {
-        die("Please fill in the payment date and amount.");
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Payment Date
+    |--------------------------------------------------------------------------
+    */
+
+    if (empty($payment_date)) {
+        die("Please select a payment date.");
     }
 
-    if (!is_numeric($amount) || $amount <= 0) {
+    $paymentDateObject = DateTime::createFromFormat(
+        'Y-m-d',
+        $payment_date
+    );
+
+    $today = new DateTime();
+
+    if (
+        !$paymentDateObject ||
+        $paymentDateObject->format('Y-m-d') !== $payment_date
+    ) {
+        die("Invalid payment date.");
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment cannot be in the future
+    |--------------------------------------------------------------------------
+    */
+
+    if ($paymentDateObject > $today) {
+        die("Payment date cannot be in the future.");
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment cannot be before interest start date
+    |--------------------------------------------------------------------------
+    */
+
+    $interestStartObject = new DateTime(
+        $debt['interest_start_date']
+    );
+
+    if ($paymentDateObject < $interestStartObject) {
+        die("Payment date cannot be before the interest start date.");
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Amount
+    |--------------------------------------------------------------------------
+    */
+
+    if ($amount === '' || !is_numeric($amount)) {
         die("Please enter a valid payment amount.");
     }
 
-    if ($amount > $remaining) {
-        die("Payment cannot be greater than the remaining debt.");
+    $amount = (float) $amount;
+
+    if ($amount <= 0) {
+        die("Payment amount must be greater than zero.");
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Calculate Balance on the Payment Date
+    |--------------------------------------------------------------------------
+    |
+    | This is important.
+    |
+    | If someone records a payment today, interest must first be
+    | calculated up to today.
+    |
+    | If someone records a historical payment, we calculate the
+    | debt balance as it existed on that payment date.
+    |
+    */
+
+    $balanceAtPaymentDate = calculateDebtBalance(
+        (float) $debt['original_amount'],
+        (float) $debt['interest_rate'],
+        $debt['interest_period'],
+        $debt['interest_start_date'],
+        $payments,
+        $payment_date
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Remaining Debt
+    |--------------------------------------------------------------------------
+    */
+
+    $remainingAtPaymentDate =
+        $balanceAtPaymentDate['total_owed'];
+
+    if ($amount > ($remainingAtPaymentDate + 0.00001)) {
+        die(
+            "Payment cannot be greater than the total amount owed " .
+            "on the selected payment date."
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Save Payment
+    |--------------------------------------------------------------------------
+    */
 
     $paymentStmt = $pdo->prepare("
         INSERT INTO debt_payments
@@ -105,22 +233,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     /*
     |--------------------------------------------------------------------------
-    | Mark Debt as Paid
+    | Fetch Updated Payment History
     |--------------------------------------------------------------------------
     */
 
-    $new_remaining = $remaining - $amount;
+    $updatedPaymentsStmt = $pdo->prepare("
+        SELECT
+            payment_date,
+            amount,
+            note
+        FROM debt_payments
+        WHERE debt_id = ?
+        ORDER BY payment_date ASC, id ASC
+    ");
 
-    if ($new_remaining == 0) {
+    $updatedPaymentsStmt->execute([
+        $debt_id
+    ]);
 
-        $statusStmt = $pdo->prepare("
-            UPDATE debts
-            SET status = 'paid'
-            WHERE id = ?
-        ");
+    $updatedPayments =
+        $updatedPaymentsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $statusStmt->execute([$debt_id]);
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | Recalculate Complete Debt
+    |--------------------------------------------------------------------------
+    */
+
+    $updatedBalance = calculateDebtBalance(
+        (float) $debt['original_amount'],
+        (float) $debt['interest_rate'],
+        $debt['interest_period'],
+        $debt['interest_start_date'],
+        $updatedPayments
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Debt Status
+    |--------------------------------------------------------------------------
+    */
+
+    $newStatus = $updatedBalance['status'];
+
+    $statusStmt = $pdo->prepare("
+        UPDATE debts
+        SET status = ?
+        WHERE id = ?
+        AND user_id = ?
+    ");
+
+    $statusStmt->execute([
+        $newStatus,
+        $debt_id,
+        $userId
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Redirect
+    |--------------------------------------------------------------------------
+    */
 
     header("Location: index.php");
     exit;
@@ -164,30 +337,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </h2>
 
     <p>
-        Original Debt:
+        Original Principal:
         <strong>
-            <?php echo number_format($debt['original_amount'], 2); ?>
+            <?php
+            echo number_format(
+                $balance['original_principal'],
+                2
+            );
+            ?>
             ETB
         </strong>
     </p>
 
     <p>
-        Already Paid:
+        Principal Remaining:
         <strong>
-            <?php echo number_format($total_paid, 2); ?>
+            <?php
+            echo number_format(
+                $balance['principal'],
+                2
+            );
+            ?>
             ETB
         </strong>
     </p>
 
     <p>
-        Remaining:
+        Accrued Interest:
         <strong>
-            <?php echo number_format($remaining, 2); ?>
+            <?php
+            echo number_format(
+                $balance['accrued_interest'],
+                2
+            );
+            ?>
             ETB
         </strong>
     </p>
 
-    <?php if ($remaining > 0): ?>
+    <p>
+        Total Owed:
+        <strong>
+            <?php
+            echo number_format(
+                $balance['total_owed'],
+                2
+            );
+            ?>
+            ETB
+        </strong>
+    </p>
+
+    <p>
+        Total Paid:
+        <strong>
+            <?php
+            echo number_format(
+                $balance['total_paid'],
+                2
+            );
+            ?>
+            ETB
+        </strong>
+    </p>
+
+    <?php if ($balance['total_owed'] > 0.00001): ?>
 
         <form method="POST">
 
@@ -202,6 +416,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     id="payment_date"
                     name="payment_date"
                     value="<?php echo date('Y-m-d'); ?>"
+                    min="<?php echo htmlspecialchars($debt['interest_start_date']); ?>"
+                    max="<?php echo date('Y-m-d'); ?>"
                     required
                 >
 
@@ -221,7 +437,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     name="amount"
                     step="0.01"
                     min="0.01"
-                    max="<?php echo htmlspecialchars($remaining); ?>"
                     required
                 >
 

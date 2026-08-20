@@ -1,5 +1,6 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
 
 /*
@@ -59,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
 
     $stmt->execute([
-        1,
+        
+        $_SESSION['user_id'],
         $income_date,
         $source,
         $amount,
@@ -104,10 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>Add Income</h1>
 
     <p>
-        <a href="../index.php">
-            ← Back to Dashboard
-        </a>
-    </p>
+    <a href="index.php">
+        ← Back to Income
+    </a>
+</p>
 
     <form method="POST">
 

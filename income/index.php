@@ -1,5 +1,6 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
 
 /*
@@ -25,6 +26,21 @@ $params = [];
 
 $conditions = [];
 
+/*
+|--------------------------------------------------------------------------
+| User Filter
+|--------------------------------------------------------------------------
+*/
+
+$conditions[] = "user_id = :user_id";
+$params[':user_id'] = $_SESSION['user_id'];
+
+/*
+|--------------------------------------------------------------------------
+| Date Filters
+|--------------------------------------------------------------------------
+*/
+
 if ($fromDate !== '') {
     $conditions[] = "income_date >= :from_date";
     $params[':from_date'] = $fromDate;
@@ -35,11 +51,21 @@ if ($toDate !== '') {
     $params[':to_date'] = $toDate;
 }
 
-if (!empty($conditions)) {
-    $sql .= " WHERE " . implode(" AND ", $conditions);
-}
+/*
+|--------------------------------------------------------------------------
+| Build WHERE Clause
+|--------------------------------------------------------------------------
+*/
+
+$sql .= " WHERE " . implode(" AND ", $conditions);
 
 $sql .= " ORDER BY income_date DESC, id DESC";
+
+/*
+|--------------------------------------------------------------------------
+| Execute Query
+|--------------------------------------------------------------------------
+*/
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);

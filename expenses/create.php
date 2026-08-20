@@ -1,5 +1,6 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
 
 /*
@@ -8,13 +9,13 @@ require_once "../config/database.php";
 |--------------------------------------------------------------------------
 */
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $userId = 1;
-    $expenseDate = $_POST['expense_date'] ?? '';
-    $categoryId = $_POST['category_id'] ?? '';
-    $amount = $_POST['amount'] ?? '';
-    $description = trim($_POST['description'] ?? '');
+    $userId = $_SESSION['user_id'];
+    $expenseDate = $_POST["expense_date"];
+    $categoryId = $_POST["category_id"];
+    $amount = $_POST["amount"];
+    $description = $_POST["description"];
 
     /*
     |--------------------------------------------------------------------------
