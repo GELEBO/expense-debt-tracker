@@ -3,11 +3,23 @@
 require_once "../config/database.php";
 require_once "../includes/interest.php";
 
+/*
+|--------------------------------------------------------------------------
+| Get Debt ID
+|--------------------------------------------------------------------------
+*/
+
 $debtId = $_GET['id'] ?? null;
 
-if (!$debtId) {
+if (!$debtId || !is_numeric($debtId)) {
     die("Debt ID is required.");
 }
+
+/*
+|--------------------------------------------------------------------------
+| Fetch Debt
+|--------------------------------------------------------------------------
+*/
 
 $stmt = $pdo->prepare("
     SELECT
@@ -34,45 +46,73 @@ if (!$debt) {
     die("Debt not found.");
 }
 
-$stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(amount), 0)
+/*
+|--------------------------------------------------------------------------
+| Fetch Payment History
+|--------------------------------------------------------------------------
+*/
+
+$paymentStmt = $pdo->prepare("
+    SELECT
+        payment_date,
+        amount,
+        note
     FROM debt_payments
     WHERE debt_id = :debt_id
+    ORDER BY payment_date ASC, id ASC
 ");
 
-$stmt->execute([
+$paymentStmt->execute([
     ":debt_id" => $debtId
 ]);
 
-$totalPaid = (float) $stmt->fetchColumn();
+$payments = $paymentStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$remainingPrincipal =
-    (float) $debt['original_amount'] - $totalPaid;
+/*
+|--------------------------------------------------------------------------
+| Calculate Current Debt Balance
+|--------------------------------------------------------------------------
+*/
+
+$balance = calculateDebtBalance(
+    (float) $debt['original_amount'],
+    (float) $debt['interest_rate'],
+    $debt['interest_period'],
+    $debt['interest_start_date'],
+    $payments
+);
+
+/*
+|--------------------------------------------------------------------------
+| Calculate Elapsed Days
+|--------------------------------------------------------------------------
+*/
 
 $elapsedDays = calculateElapsedDays(
     $debt['interest_start_date']
 );
 
-$accruedInterest = calculateAccruedInterest(
-    $remainingPrincipal,
-    (float) $debt['interest_rate'],
-    $debt['interest_period'],
-    $elapsedDays
-);
-
-$totalOwed = $remainingPrincipal + $accruedInterest;
-
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Debt Details</title>
 
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link
+        rel="stylesheet"
+        href="../assets/css/style.css"
+    >
+
 </head>
 
 <body>
@@ -80,67 +120,170 @@ $totalOwed = $remainingPrincipal + $accruedInterest;
     <h1>Debt Details</h1>
 
     <p>
-        <a href="index.php">← Back to Debts</a>
+        <a href="index.php">
+            ← Back to Debts
+        </a>
     </p>
 
-    <h2><?php echo htmlspecialchars($debt['creditor']); ?></h2>
+    <h2>
+        <?php echo htmlspecialchars($debt['creditor']); ?>
+    </h2>
 
     <p>
-        <?php echo htmlspecialchars($debt['description'] ?? ''); ?>
+        <?php
+        echo htmlspecialchars(
+            $debt['description'] ?? ''
+        );
+        ?>
     </p>
 
     <hr>
 
     <p>
-        <strong>Original Debt:</strong>
-        <?php echo number_format($debt['original_amount'], 2); ?> ETB
+        <strong>Original Principal:</strong>
+        <?php
+        echo number_format(
+            $balance['original_principal'],
+            2
+        );
+        ?>
+        ETB
     </p>
 
     <p>
         <strong>Total Paid:</strong>
-        <?php echo number_format($totalPaid, 2); ?> ETB
+        <?php
+        echo number_format(
+            $balance['total_paid'],
+            2
+        );
+        ?>
+        ETB
     </p>
 
     <p>
         <strong>Remaining Principal:</strong>
-        <?php echo number_format($remainingPrincipal, 2); ?> ETB
+        <?php
+        echo number_format(
+            $balance['principal'],
+            2
+        );
+        ?>
+        ETB
     </p>
 
     <p>
         <strong>Interest Rate:</strong>
-        <?php echo number_format($debt['interest_rate'], 2); ?>%
-        <?php echo htmlspecialchars($debt['interest_period']); ?>
+        <?php
+        echo number_format(
+            (float) $debt['interest_rate'],
+            2
+        );
+        ?>%
+
+        <?php
+        echo htmlspecialchars(
+            $debt['interest_period']
+        );
+        ?>
     </p>
 
     <p>
         <strong>Interest Start Date:</strong>
-        <?php echo htmlspecialchars($debt['interest_start_date']); ?>
+        <?php
+        echo htmlspecialchars(
+            $debt['interest_start_date']
+        );
+        ?>
     </p>
 
     <p>
         <strong>Elapsed Days:</strong>
-        <?php echo $elapsedDays; ?> days
+        <?php
+        echo $elapsedDays;
+        ?>
+        days
     </p>
 
     <p>
         <strong>Accrued Interest:</strong>
-        <?php echo number_format($accruedInterest, 2); ?> ETB
+        <?php
+        echo number_format(
+            $balance['accrued_interest'],
+            2
+        );
+        ?>
+        ETB
     </p>
 
     <p>
         <strong>Total Amount Owed:</strong>
-        <?php echo number_format($totalOwed, 2); ?> ETB
+        <?php
+        echo number_format(
+            $balance['total_owed'],
+            2
+        );
+        ?>
+        ETB
+    </p>
+
+    <p>
+        <strong>Total Interest Accrued:</strong>
+        <?php
+        echo number_format(
+            $balance['total_interest_accrued'],
+            2
+        );
+        ?>
+        ETB
     </p>
 
     <p>
         <strong>Due Date:</strong>
-        <?php echo htmlspecialchars($debt['due_date']); ?>
+        <?php
+        echo htmlspecialchars(
+            $debt['due_date']
+        );
+        ?>
     </p>
 
     <p>
         <strong>Status:</strong>
-        <?php echo htmlspecialchars($debt['status']); ?>
+        <?php
+        echo htmlspecialchars(
+            $balance['status']
+        );
+        ?>
     </p>
 
+    <hr>
+
+    <p>
+        <a
+            href="payments.php?debt_id=<?php echo $debtId; ?>"
+        >
+            View Payment History
+        </a>
+    </p>
+
+    <?php if ($balance['total_owed'] > 0.00001): ?>
+
+        <p>
+            <a
+                href="payment.php?debt_id=<?php echo $debtId; ?>"
+            >
+                Record Payment
+            </a>
+        </p>
+
+    <?php else: ?>
+
+        <p>
+            This debt has been fully paid.
+        </p>
+
+    <?php endif; ?>
+
 </body>
+
 </html>

@@ -1,6 +1,9 @@
+
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
+require_once "../config/language.php";
 
 /*
 |--------------------------------------------------------------------------
@@ -11,8 +14,9 @@ require_once "../config/database.php";
 $id = $_GET['id'] ?? null;
 
 if (!$id || !is_numeric($id)) {
-    die("Invalid income ID.");
+    die(__('invalid_income_id'));
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -36,8 +40,9 @@ $stmt->execute([$id]);
 $income = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$income) {
-    die("Income record not found.");
+    die(__('income_not_found'));
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -52,17 +57,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = $_POST['amount'] ?? '';
     $description = trim($_POST['description'] ?? '');
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Required Fields
+    |--------------------------------------------------------------------------
+    */
+
     if (
         empty($income_date) ||
         empty($source) ||
         empty($amount)
     ) {
-        die("Please fill in all required fields.");
+        die(__('fill_required_fields'));
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Amount
+    |--------------------------------------------------------------------------
+    */
+
     if (!is_numeric($amount) || $amount <= 0) {
-        die("Please enter a valid income amount.");
+        die(__('invalid_income_amount'));
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Database
+    |--------------------------------------------------------------------------
+    */
 
     $updateStmt = $pdo->prepare("
         UPDATE income
@@ -82,6 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id
     ]);
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return to Income History
+    |--------------------------------------------------------------------------
+    */
+
     header("Location: index.php");
     exit;
 }
@@ -89,7 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="<?= htmlspecialchars($_SESSION['language'] ?? 'en') ?>">
 
 <head>
 
@@ -100,7 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Edit Income | Expense & Debt Tracker</title>
+    <title>
+        <?= __('edit_income') ?> | <?= __('app_name') ?>
+    </title>
 
     <link
         rel="stylesheet"
@@ -111,57 +147,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
 
-    <h1>Edit Income</h1>
+
+    <!-- =========================
+         PAGE TITLE
+         ========================= -->
+
+    <h1>
+        <?= __('edit_income') ?>
+    </h1>
+
+
+    <!-- =========================
+         BACK TO INCOME
+         ========================= -->
 
     <p>
+
         <a href="index.php">
-            ← Back to Income
+
+            ← <?= __('back_to_income') ?>
+
         </a>
+
     </p>
 
+
+    <!-- =========================
+         EDIT FORM
+         ========================= -->
+
     <form method="POST">
+
+
+        <!-- Date -->
 
         <div>
 
             <label for="income_date">
-                Date:
+
+                <?= __('date') ?>:
+
             </label>
+
 
             <input
                 type="date"
                 id="income_date"
                 name="income_date"
-                value="<?php echo htmlspecialchars($income['income_date']); ?>"
+                value="<?= htmlspecialchars($income['income_date']) ?>"
                 required
             >
 
         </div>
 
+
         <br>
+
+
+        <!-- Source -->
 
         <div>
 
             <label for="source">
-                Source:
+
+                <?= __('source') ?>:
+
             </label>
+
 
             <input
                 type="text"
                 id="source"
                 name="source"
-                value="<?php echo htmlspecialchars($income['source']); ?>"
+                value="<?= htmlspecialchars($income['source']) ?>"
                 required
             >
 
         </div>
 
+
         <br>
+
+
+        <!-- Amount -->
 
         <div>
 
             <label for="amount">
-                Amount:
+
+                <?= __('amount') ?>:
+
             </label>
+
 
             <input
                 type="number"
@@ -169,36 +246,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 name="amount"
                 step="0.01"
                 min="0.01"
-                value="<?php echo htmlspecialchars($income['amount']); ?>"
+                value="<?= htmlspecialchars($income['amount']) ?>"
                 required
             >
 
         </div>
 
+
         <br>
+
+
+        <!-- Description -->
 
         <div>
 
             <label for="description">
-                Description:
+
+                <?= __('description') ?>:
+
             </label>
+
 
             <textarea
                 id="description"
                 name="description"
                 rows="4"
                 cols="40"
-            ><?php echo htmlspecialchars($income['description']); ?></textarea>
+            ><?= htmlspecialchars($income['description']) ?></textarea>
 
         </div>
 
+
         <br>
 
+
+        <!-- Update -->
+
         <button type="submit">
-            Update Income
+
+            <?= __('update_income') ?>
+
         </button>
 
+
     </form>
+
 
 </body>
 

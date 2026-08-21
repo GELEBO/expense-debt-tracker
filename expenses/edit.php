@@ -1,6 +1,8 @@
 <?php
 
+require_once "../includes/auth.php";
 require_once "../config/database.php";
+require_once "../config/language.php";
 
 /*
 |--------------------------------------------------------------------------
@@ -11,8 +13,9 @@ require_once "../config/database.php";
 $id = $_GET['id'] ?? null;
 
 if (!$id || !is_numeric($id)) {
-    die("Invalid expense ID.");
+    die(__('invalid_expense_id'));
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -36,8 +39,9 @@ $stmt->execute([$id]);
 $expense = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$expense) {
-    die("Expense not found.");
+    die(__('expense_not_found'));
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = $_POST['amount'] ?? '';
     $description = trim($_POST['description'] ?? '');
 
+
     /*
     |--------------------------------------------------------------------------
     | Validation
@@ -63,16 +68,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         empty($category_id) ||
         empty($amount)
     ) {
-        die("Please fill in all required fields.");
+        die(__('fill_required_fields'));
     }
+
 
     if (!is_numeric($amount) || $amount <= 0) {
-        die("Please enter a valid expense amount.");
+        die(__('invalid_expense_amount'));
     }
 
+
     if (!is_numeric($category_id)) {
-        die("Please select a valid expense category.");
+        die(__('invalid_expense_category'));
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -90,8 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $categoryStmt->execute([$category_id]);
 
     if (!$categoryStmt->fetch()) {
-        die("Invalid expense category.");
+        die(__('invalid_expense_category'));
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -117,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id
     ]);
 
+
     /*
     |--------------------------------------------------------------------------
     | Return to Expense List
@@ -127,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+
 /*
 |--------------------------------------------------------------------------
 | Fetch Expense Categories
@@ -134,7 +145,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 */
 
 $categoryStmt = $pdo->query("
-    SELECT id, name
+    SELECT
+        id,
+        name
     FROM categories
     WHERE type = 'expense'
     ORDER BY name ASC
@@ -142,10 +155,52 @@ $categoryStmt = $pdo->query("
 
 $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
+
+/*
+|--------------------------------------------------------------------------
+| Category Translation
+|--------------------------------------------------------------------------
+*/
+
+$categoryTranslations = [
+
+    'Food' => __('category_food'),
+
+    'Transport' => __('category_transport'),
+
+    'Health' => __('category_health'),
+
+    'Medicine' => __('category_medicine'),
+
+    'Education' => __('category_education'),
+
+    'Housing' => __('category_housing'),
+
+    'Utilities' => __('category_utilities'),
+
+    'Communication' => __('category_communication'),
+
+    'Clothing' => __('category_clothing'),
+
+    'Family' => __('category_family'),
+
+    'Personal' => __('category_personal'),
+
+    'Help' => __('category_help'),
+
+    'Treatment' => __('category_treatment'),
+
+    'Tithe' => __('category_tithe'),
+
+    'Other' => __('category_other')
+
+];
+
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="<?= htmlspecialchars($_SESSION['language'] ?? 'en') ?>">
 
 <head>
 
@@ -156,7 +211,10 @@ $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Edit Expense | Expense & Debt Tracker</title>
+    <title>
+        <?= __('edit_expense') ?> |
+        <?= __('app_name') ?>
+    </title>
 
     <link
         rel="stylesheet"
@@ -167,38 +225,72 @@ $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
 <body>
 
-    <h1>Edit Expense</h1>
+
+    <!-- =========================
+         PAGE TITLE
+         ========================= -->
+
+    <h1>
+
+        <?= __('edit_expense') ?>
+
+    </h1>
+
+
+    <!-- =========================
+         BACK TO EXPENSES
+         ========================= -->
 
     <p>
+
         <a href="index.php">
-            ← Back to Expenses
+
+            ← <?= __('back_to_expenses') ?>
+
         </a>
+
     </p>
 
+
+    <!-- =========================
+         EDIT FORM
+         ========================= -->
+
     <form method="POST">
+
+
+        <!-- Date -->
 
         <div>
 
             <label for="expense_date">
-                Date:
+
+                <?= __('date') ?>:
+
             </label>
 
             <input
                 type="date"
                 id="expense_date"
                 name="expense_date"
-                value="<?php echo htmlspecialchars($expense['expense_date']); ?>"
+                value="<?= htmlspecialchars($expense['expense_date']) ?>"
                 required
             >
 
         </div>
 
+
         <br>
+
+
+        <!-- Category -->
 
         <div>
 
             <label for="category_id">
-                Category:
+
+                <?= __('category') ?>:
+
             </label>
 
             <select
@@ -207,24 +299,35 @@ $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
                 required
             >
 
+                <option value="">
+
+                    <?= __('select_category') ?>
+
+                </option>
+
+
                 <?php foreach ($categories as $category): ?>
 
+                    <?php
+
+                    $categoryName = $category['name'];
+
+                    $displayCategory =
+                        $categoryTranslations[$categoryName]
+                        ?? $categoryName;
+
+                    ?>
+
                     <option
-                        value="<?php echo $category['id']; ?>"
-                        <?php
-                        if (
+                        value="<?= $category['id'] ?>"
+                        <?= (
                             $category['id']
                             == $expense['category_id']
-                        ) {
-                            echo 'selected';
-                        }
-                        ?>
+                        ) ? 'selected' : '' ?>
                     >
-                        <?php
-                        echo htmlspecialchars(
-                            $category['name']
-                        );
-                        ?>
+
+                        <?= htmlspecialchars($displayCategory) ?>
+
                     </option>
 
                 <?php endforeach; ?>
@@ -233,12 +336,18 @@ $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
         </div>
 
+
         <br>
+
+
+        <!-- Amount -->
 
         <div>
 
             <label for="amount">
-                Amount:
+
+                <?= __('amount') ?>:
+
             </label>
 
             <input
@@ -247,35 +356,49 @@ $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
                 name="amount"
                 step="0.01"
                 min="0.01"
-                value="<?php echo htmlspecialchars($expense['amount']); ?>"
+                value="<?= htmlspecialchars($expense['amount']) ?>"
                 required
             >
 
         </div>
 
+
         <br>
+
+
+        <!-- Description -->
 
         <div>
 
             <label for="description">
-                Description:
+
+                <?= __('description') ?>:
+
             </label>
 
             <textarea
                 id="description"
                 name="description"
                 rows="4"
-            ><?php echo htmlspecialchars($expense['description']); ?></textarea>
+            ><?= htmlspecialchars($expense['description']) ?></textarea>
 
         </div>
 
+
         <br>
 
+
+        <!-- Update -->
+
         <button type="submit">
-            Update Expense
+
+            <?= __('update_expense') ?>
+
         </button>
 
+
     </form>
+
 
 </body>
 

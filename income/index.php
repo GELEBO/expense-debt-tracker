@@ -1,7 +1,9 @@
+
 <?php
 
 require_once "../includes/auth.php";
 require_once "../config/database.php";
+require_once "../config/language.php";
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +28,7 @@ $params = [];
 
 $conditions = [];
 
+
 /*
 |--------------------------------------------------------------------------
 | User Filter
@@ -33,7 +36,9 @@ $conditions = [];
 */
 
 $conditions[] = "user_id = :user_id";
+
 $params[':user_id'] = $_SESSION['user_id'];
+
 
 /*
 |--------------------------------------------------------------------------
@@ -42,14 +47,19 @@ $params[':user_id'] = $_SESSION['user_id'];
 */
 
 if ($fromDate !== '') {
+
     $conditions[] = "income_date >= :from_date";
+
     $params[':from_date'] = $fromDate;
 }
 
 if ($toDate !== '') {
+
     $conditions[] = "income_date <= :to_date";
+
     $params[':to_date'] = $toDate;
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +71,7 @@ $sql .= " WHERE " . implode(" AND ", $conditions);
 
 $sql .= " ORDER BY income_date DESC, id DESC";
 
+
 /*
 |--------------------------------------------------------------------------
 | Execute Query
@@ -68,6 +79,7 @@ $sql .= " ORDER BY income_date DESC, id DESC";
 */
 
 $stmt = $pdo->prepare($sql);
+
 $stmt->execute($params);
 
 $incomes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -82,14 +94,14 @@ $incomes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $totalIncome = 0;
 
 foreach ($incomes as $income) {
+
     $totalIncome += (float) $income['amount'];
 }
 
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="<?= htmlspecialchars($_SESSION['language'] ?? 'en') ?>">
 <head>
 
     <meta charset="UTF-8">
@@ -99,7 +111,9 @@ foreach ($incomes as $income) {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Income | Expense & Debt Tracker</title>
+    <title>
+        <?= __('income') ?> | <?= __('app_name') ?>
+    </title>
 
     <link
         rel="stylesheet"
@@ -110,72 +124,147 @@ foreach ($incomes as $income) {
 
 <body>
 
-    <h1>Income</h1>
+
+    <!-- =========================
+         PAGE TITLE
+         ========================= -->
+
+    <h1>
+        <?= __('income') ?>
+    </h1>
+
+
+    <!-- =========================
+         BACK TO DASHBOARD
+         ========================= -->
 
     <p>
+
         <a href="../index.php">
-            ← Back to Dashboard
+
+            ← <?= __('back_to_dashboard') ?>
+
         </a>
+
     </p>
 
+
+    <!-- =========================
+         ADD INCOME
+         ========================= -->
+
     <p>
+
         <a href="create.php">
-            + Add Income
+
+            + <?= __('add_income') ?>
+
         </a>
+
     </p>
+
+
+    <!-- =========================
+         DATE FILTER
+         ========================= -->
+
     <form method="GET">
 
-    <label for="from_date">
-        From:
-    </label>
+        <label for="from_date">
 
-    <input
-        type="date"
-        id="from_date"
-        name="from_date"
-        value="<?php echo htmlspecialchars($fromDate); ?>"
-    >
+            <?= __('from') ?>:
 
-    <label for="to_date">
-        To:
-    </label>
+        </label>
 
-    <input
-        type="date"
-        id="to_date"
-        name="to_date"
-        value="<?php echo htmlspecialchars($toDate); ?>"
-    >
 
-    <button type="submit">
-        Filter
-    </button>
+        <input
+            type="date"
+            id="from_date"
+            name="from_date"
+            value="<?= htmlspecialchars($fromDate) ?>"
+        >
 
-    <a href="index.php">
-        Clear
-    </a>
 
-</form>
+        <label for="to_date">
 
-<h2>
-    Total Income:
-    <?php echo number_format($totalIncome, 2); ?>
-    ETB
-</h2>
+            <?= __('to') ?>:
+
+        </label>
+
+
+        <input
+            type="date"
+            id="to_date"
+            name="to_date"
+            value="<?= htmlspecialchars($toDate) ?>"
+        >
+
+
+        <button type="submit">
+
+            <?= __('filter') ?>
+
+        </button>
+
+
+        <a href="index.php">
+
+            <?= __('clear') ?>
+
+        </a>
+
+    </form>
+
+
+    <!-- =========================
+         TOTAL INCOME
+         ========================= -->
+
+    <h2>
+
+        <?= __('total_income') ?>:
+
+        <?= number_format($totalIncome, 2) ?>
+
+        ETB
+
+    </h2>
+
+
+    <!-- =========================
+         INCOME HISTORY TABLE
+         ========================= -->
 
     <table border="1" cellpadding="10">
 
         <thead>
 
             <tr>
-                <th>Date</th>
-                <th>Source</th>
-                <th>Amount</th>
-                <th>Description</th>
-                <th>Action</th>
+
+                <th>
+                    <?= __('date') ?>
+                </th>
+
+                <th>
+                    <?= __('source') ?>
+                </th>
+
+                <th>
+                    <?= __('amount') ?>
+                </th>
+
+                <th>
+                    <?= __('description') ?>
+                </th>
+
+                <th>
+                    <?= __('actions') ?>
+                </th>
+
             </tr>
 
         </thead>
+
 
         <tbody>
 
@@ -183,63 +272,89 @@ foreach ($incomes as $income) {
 
             <tr>
 
+
+                <!-- Date -->
+
                 <td>
-                    <?php
-                    echo htmlspecialchars(
+
+                    <?= htmlspecialchars(
                         $income['income_date']
-                    );
-                    ?>
+                    ) ?>
+
                 </td>
 
+
+                <!-- Source -->
+
                 <td>
-                    <?php
-                    echo htmlspecialchars(
+
+                    <?= htmlspecialchars(
                         $income['source']
-                    );
-                    ?>
+                    ) ?>
+
                 </td>
 
+
+                <!-- Amount -->
+
                 <td>
-                    <?php
-                    echo number_format(
+
+                    <?= number_format(
                         $income['amount'],
                         2
-                    );
-                    ?>
+                    ) ?>
+
                     ETB
+
                 </td>
 
+
+                <!-- Description -->
+
                 <td>
-                    <?php
-                    echo htmlspecialchars(
+
+                    <?= htmlspecialchars(
                         $income['description']
-                    );
-                    ?>
+                    ) ?>
+
                 </td>
+
+
+                <!-- Actions -->
 
                 <td>
 
-                <a href="edit.php?id=<?php echo $income['id']; ?>">
-                 Edit
-                 </a>
+                    <a
+                        href="edit.php?id=<?= $income['id'] ?>"
+                    >
+                        <?= __('edit') ?>
+                    </a>
+
 
                     |
 
-                    <form
-    method="POST"
-    action="delete.php"
-    onsubmit="return confirm('Are you sure you want to delete this income record?');"
->
-    <input
-        type="hidden"
-        name="id"
-        value="<?php echo $income['id']; ?>"
-    >
 
-    <button type="submit">
-        Delete
-    </button>
-</form>
+                    <form
+                        method="POST"
+                        action="delete.php"
+                        style="display:inline;"
+                        onsubmit="return confirm('<?= htmlspecialchars(__('delete_income_confirmation'), ENT_QUOTES) ?>');"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="id"
+                            value="<?= $income['id'] ?>"
+                        >
+
+
+                        <button type="submit">
+
+                            <?= __('delete') ?>
+
+                        </button>
+
+                    </form>
 
                 </td>
 
@@ -250,6 +365,7 @@ foreach ($incomes as $income) {
         </tbody>
 
     </table>
+
 
 </body>
 

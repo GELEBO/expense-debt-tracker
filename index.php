@@ -3,6 +3,7 @@
 require_once "includes/auth.php";
 require_once "config/database.php";
 require_once "includes/interest.php";
+require_once "config/language.php";
 
 $userId = $_SESSION['user_id'];
 
@@ -156,7 +157,7 @@ $totalAmountOwed =
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $current_language ?>">
 
 <head>
 
@@ -187,22 +188,50 @@ $totalAmountOwed =
         <div class="dashboard-title">
 
             <h1>
-                Expense & Debt Tracker
+                <?= __('app_name') ?>
             </h1>
 
             <p class="dashboard-intro">
-                Welcome to your financial dashboard.
+                <?= __('dashboard_intro') ?>
             </p>
 
         </div>
 
+
         <div class="user-actions">
+
+            <!-- Language Selector -->
+
+            <div class="language-selector">
+
+                <span>
+                    <?= __('language') ?>:
+                </span>
+
+                <?php if ($current_language === 'en'): ?>
+
+                    <a href="?lang=am">
+                        አማርኛ
+                    </a>
+
+                <?php else: ?>
+
+                    <a href="?lang=en">
+                        English
+                    </a>
+
+                <?php endif; ?>
+
+            </div>
+
+
+            <!-- Logout -->
 
             <a
                 href="users/logout.php"
                 class="logout-btn"
             >
-                Logout
+                <?= __('logout') ?>
             </a>
 
         </div>
@@ -218,15 +247,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Total Income</h2>
+            <h2>
+                <?= __('total_income') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $totalIncome,
-                    2
-                );
-                ?>
+                <?= number_format($totalIncome, 2) ?>
                 ETB
             </p>
 
@@ -235,15 +261,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Total Expenses</h2>
+            <h2>
+                <?= __('total_expenses') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $totalExpenses,
-                    2
-                );
-                ?>
+                <?= number_format($totalExpenses, 2) ?>
                 ETB
             </p>
 
@@ -252,15 +275,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Current Balance</h2>
+            <h2>
+                <?= __('current_balance') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $currentBalance,
-                    2
-                );
-                ?>
+                <?= number_format($currentBalance, 2) ?>
                 ETB
             </p>
 
@@ -269,15 +289,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Total Original Debt</h2>
+            <h2>
+                <?= __('total_original_debt') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $totalDebt,
-                    2
-                );
-                ?>
+                <?= number_format($totalDebt, 2) ?>
                 ETB
             </p>
 
@@ -286,15 +303,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Total Debt Paid</h2>
+            <h2>
+                <?= __('total_debt_paid') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $totalPaid,
-                    2
-                );
-                ?>
+                <?= number_format($totalPaid, 2) ?>
                 ETB
             </p>
 
@@ -303,15 +317,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Remaining Principal</h2>
+            <h2>
+                <?= __('remaining_principal') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $remainingPrincipal,
-                    2
-                );
-                ?>
+                <?= number_format($remainingPrincipal, 2) ?>
                 ETB
             </p>
 
@@ -320,15 +331,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Accrued Interest</h2>
+            <h2>
+                <?= __('accrued_interest') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $totalAccruedInterest,
-                    2
-                );
-                ?>
+                <?= number_format($totalAccruedInterest, 2) ?>
                 ETB
             </p>
 
@@ -337,15 +345,12 @@ $totalAmountOwed =
 
         <div class="summary-card">
 
-            <h2>Total Amount Owed</h2>
+            <h2>
+                <?= __('total_amount_owed') ?>
+            </h2>
 
             <p>
-                <?php
-                echo number_format(
-                    $totalAmountOwed,
-                    2
-                );
-                ?>
+                <?= number_format($totalAmountOwed, 2) ?>
                 ETB
             </p>
 
@@ -361,15 +366,15 @@ $totalAmountOwed =
     <nav class="dashboard-nav">
 
         <a href="income/index.php">
-            Income
+            <?= __('income') ?>
         </a>
 
         <a href="expenses/index.php">
-            Expenses
+            <?= __('expenses') ?>
         </a>
 
         <a href="debt/index.php">
-            Debts
+            <?= __('debts') ?>
         </a>
 
     </nav>

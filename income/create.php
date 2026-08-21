@@ -2,6 +2,7 @@
 
 require_once "../includes/auth.php";
 require_once "../config/database.php";
+require_once "../config/language.php";
 
 /*
 |--------------------------------------------------------------------------
@@ -16,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = $_POST['amount'] ?? '';
     $description = trim($_POST['description'] ?? '');
 
+
     /*
     |--------------------------------------------------------------------------
     | Validation
@@ -27,12 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         empty($source) ||
         empty($amount)
     ) {
-        die("Please fill in all required fields.");
+        die(__('fill_required_fields'));
     }
 
+
     if (!is_numeric($amount) || $amount <= 0) {
-        die("Please enter a valid income amount.");
+        die(__('invalid_income_amount'));
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -60,13 +64,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
 
     $stmt->execute([
-        
+
         $_SESSION['user_id'],
         $income_date,
         $source,
         $amount,
         $description
+
     ]);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -81,7 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="<?= htmlspecialchars($_SESSION['language'] ?? 'en') ?>">
 
 <head>
 
@@ -92,7 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Add Income | Expense & Debt Tracker</title>
+    <title>
+        <?= __('add_income') ?> | <?= __('app_name') ?>
+    </title>
 
     <link
         rel="stylesheet"
@@ -103,56 +112,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
 
-    <h1>Add Income</h1>
+
+    <!-- =========================
+         PAGE TITLE
+         ========================= -->
+
+    <h1>
+
+        <?= __('add_income') ?>
+
+    </h1>
+
+
+    <!-- =========================
+         BACK TO INCOME
+         ========================= -->
 
     <p>
-    <a href="index.php">
-        ← Back to Income
-    </a>
-</p>
+
+        <a href="index.php">
+
+            ← <?= __('back_to_income') ?>
+
+        </a>
+
+    </p>
+
+
+    <!-- =========================
+         ADD INCOME FORM
+         ========================= -->
 
     <form method="POST">
+
+
+        <!-- Date -->
 
         <div>
 
             <label for="income_date">
-                Date:
+
+                <?= __('date') ?>:
+
             </label>
 
             <input
                 type="date"
                 id="income_date"
                 name="income_date"
-                value="<?php echo date('Y-m-d'); ?>"
+                value="<?= date('Y-m-d') ?>"
                 required
             >
 
         </div>
 
+
         <br>
+
+
+        <!-- Source -->
 
         <div>
 
             <label for="source">
-                Source:
+
+                <?= __('source') ?>:
+
             </label>
 
             <input
                 type="text"
                 id="source"
                 name="source"
-                placeholder="e.g. Salary"
+                placeholder="<?= htmlspecialchars(__('income_source_placeholder')) ?>"
                 required
             >
 
         </div>
 
+
         <br>
+
+
+        <!-- Amount -->
 
         <div>
 
             <label for="amount">
-                Amount:
+
+                <?= __('amount') ?>:
+
             </label>
 
             <input
@@ -166,12 +215,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
+
         <br>
+
+
+        <!-- Description -->
 
         <div>
 
             <label for="description">
-                Description:
+
+                <?= __('description') ?>:
+
             </label>
 
             <textarea
@@ -183,13 +238,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
+
         <br>
 
+
+        <!-- Save -->
+
         <button type="submit">
-            Save Income
+
+            <?= __('save_income') ?>
+
         </button>
 
+
     </form>
+
 
 </body>
 

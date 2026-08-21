@@ -2,6 +2,7 @@
 
 require_once "../includes/auth.php";
 require_once "../config/database.php";
+require_once "../config/language.php";
 
 /*
 |--------------------------------------------------------------------------
@@ -23,8 +24,10 @@ $sql = "
     JOIN categories
         ON expenses.category_id = categories.id
 ";
+
 $params = [];
 $conditions = [];
+
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +36,9 @@ $conditions = [];
 */
 
 $conditions[] = "expenses.user_id = :user_id";
+
 $params[':user_id'] = $_SESSION['user_id'];
+
 
 /*
 |--------------------------------------------------------------------------
@@ -42,22 +47,42 @@ $params[':user_id'] = $_SESSION['user_id'];
 */
 
 if ($fromDate !== '') {
+
     $conditions[] = "expenses.expense_date >= :from_date";
+
     $params[':from_date'] = $fromDate;
 }
 
 if ($toDate !== '') {
+
     $conditions[] = "expenses.expense_date <= :to_date";
+
     $params[':to_date'] = $toDate;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Build WHERE Clause
+|--------------------------------------------------------------------------
+*/
+
 if (!empty($conditions)) {
+
     $sql .= " WHERE " . implode(" AND ", $conditions);
 }
 
 $sql .= " ORDER BY expenses.expense_date DESC, expenses.id DESC";
 
+
+/*
+|--------------------------------------------------------------------------
+| Execute Query
+|--------------------------------------------------------------------------
+*/
+
 $stmt = $pdo->prepare($sql);
+
 $stmt->execute($params);
 
 $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -72,80 +97,179 @@ $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $totalExpenses = 0;
 
 foreach ($expenses as $expense) {
+
     $totalExpenses += (float) $expense['amount'];
 }
 
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="<?= htmlspecialchars($_SESSION['language'] ?? 'en') ?>">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expenses | Expense & Debt Tracker</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        <?= __('expenses') ?> | <?= __('app_name') ?>
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="../assets/css/style.css"
+    >
+
 </head>
 
 <body>
 
-    <h1>Expenses</h1>
+
+    <!-- =========================
+         PAGE TITLE
+         ========================= -->
+
+    <h1>
+        <?= __('expenses') ?>
+    </h1>
+
+
+    <!-- =========================
+         BACK TO DASHBOARD
+         ========================= -->
 
     <p>
-        <a href="../index.php">← Back to Dashboard</a>
+
+        <a href="../index.php">
+
+            ← <?= __('back_to_dashboard') ?>
+
+        </a>
+
     </p>
+
+
+    <!-- =========================
+         ADD EXPENSE
+         ========================= -->
+
     <p>
-    <a href="create.php">+ Add Expense</a>
+
+        <a href="create.php">
+
+            + <?= __('add_expense') ?>
+
+        </a>
+
     </p>
+
+
+    <!-- =========================
+         DATE FILTER
+         ========================= -->
+
     <form method="GET">
 
-    <label for="from_date">
-        From:
-    </label>
+        <label for="from_date">
 
-    <input
-        type="date"
-        id="from_date"
-        name="from_date"
-        value="<?php echo htmlspecialchars($fromDate); ?>"
-    >
+            <?= __('from') ?>:
 
-    <label for="to_date">
-        To:
-    </label>
+        </label>
 
-    <input
-        type="date"
-        id="to_date"
-        name="to_date"
-        value="<?php echo htmlspecialchars($toDate); ?>"
-    >
 
-    <button type="submit">
-        Filter
-    </button>
+        <input
+            type="date"
+            id="from_date"
+            name="from_date"
+            value="<?= htmlspecialchars($fromDate) ?>"
+        >
 
-    <a href="index.php">
-        Clear
-    </a>
 
-</form>
+        <label for="to_date">
 
-<h2>
-    Total Expenses:
-    <?php echo number_format($totalExpenses, 2); ?>
-    ETB
-</h2>
+            <?= __('to') ?>:
+
+        </label>
+
+
+        <input
+            type="date"
+            id="to_date"
+            name="to_date"
+            value="<?= htmlspecialchars($toDate) ?>"
+        >
+
+
+        <button type="submit">
+
+            <?= __('filter') ?>
+
+        </button>
+
+
+        <a href="index.php">
+
+            <?= __('clear') ?>
+
+        </a>
+
+    </form>
+
+
+    <!-- =========================
+         TOTAL EXPENSES
+         ========================= -->
+
+    <h2>
+
+        <?= __('total_expenses') ?>:
+
+        <?= number_format($totalExpenses, 2) ?>
+
+        ETB
+
+    </h2>
+
+
+    <!-- =========================
+         EXPENSE HISTORY TABLE
+         ========================= -->
 
     <table border="1" cellpadding="10">
+
         <thead>
+
             <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Description</th>
-                <th>Action</th>
+
+                <th>
+                    <?= __('date') ?>
+                </th>
+
+                <th>
+                    <?= __('category') ?>
+                </th>
+
+                <th>
+                    <?= __('amount') ?>
+                </th>
+
+                <th>
+                    <?= __('description') ?>
+                </th>
+
+                <th>
+                    <?= __('actions') ?>
+                </th>
+
             </tr>
+
         </thead>
+
 
         <tbody>
 
@@ -153,55 +277,101 @@ foreach ($expenses as $expense) {
 
             <tr>
 
-    <td>
-        <?php echo htmlspecialchars($expense['expense_date']); ?>
-    </td>
 
-    <td>
-        <?php echo htmlspecialchars($expense['category']); ?>
-    </td>
+                <!-- Date -->
 
-    <td>
-        <?php echo number_format($expense['amount'], 2); ?> ETB
-    </td>
+                <td>
 
-    <td>
-        <?php echo htmlspecialchars($expense['description']); ?>
-    </td>
+                    <?= htmlspecialchars(
+                        $expense['expense_date']
+                    ) ?>
 
-    <td>
+                </td>
 
-        <a href="edit.php?id=<?php echo $expense['id']; ?>">
-            Edit
-        </a>
 
-        |
+                <!-- Category -->
 
-        <form
-    method="POST"
-    action="delete.php"
-    style="display: inline;"
-    onsubmit="return confirm('Are you sure you want to delete this expense?');"
->
-    <input
-        type="hidden"
-        name="id"
-        value="<?php echo $expense['id']; ?>"
-    >
+                <td>
 
-    <button type="submit">
-        Delete
-    </button>
-</form>
+                    <?= htmlspecialchars(
+                        $expense['category']
+                    ) ?>
 
-    </td>
+                </td>
 
-</tr>
+
+                <!-- Amount -->
+
+                <td>
+
+                    <?= number_format(
+                        $expense['amount'],
+                        2
+                    ) ?>
+
+                    ETB
+
+                </td>
+
+
+                <!-- Description -->
+
+                <td>
+
+                    <?= htmlspecialchars(
+                        $expense['description']
+                    ) ?>
+
+                </td>
+
+
+                <!-- Actions -->
+
+                <td>
+
+                    <a
+                        href="edit.php?id=<?= $expense['id'] ?>"
+                    >
+                        <?= __('edit') ?>
+                    </a>
+
+
+                    |
+
+
+                    <form
+                        method="POST"
+                        action="delete.php"
+                        style="display:inline;"
+                        onsubmit="return confirm('<?= htmlspecialchars(__('delete_expense_confirmation'), ENT_QUOTES) ?>');"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="id"
+                            value="<?= $expense['id'] ?>"
+                        >
+
+
+                        <button type="submit">
+
+                            <?= __('delete') ?>
+
+                        </button>
+
+                    </form>
+
+                </td>
+
+            </tr>
 
         <?php endforeach; ?>
 
         </tbody>
+
     </table>
 
+
 </body>
+
 </html>
